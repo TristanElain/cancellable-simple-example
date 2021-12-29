@@ -7,6 +7,28 @@ type CancellableFn<T extends any[], R = never> = [R] extends [never]
 
 type CancelFn = () => void;
 
+/**** Utilities ****/
+function wrapCancellable<Args extends any[], R = never>(
+  cancellable: CancellableFn<Args, R>
+): (...args: Args) => [R] extends [never] ? void : R;
+function wrapCancellable<Args extends any[], R>(
+  cancellable: CancellableFn<Args, R>
+) {
+  let lastCancel: CancelFn;
+  return (...args: Args) => {
+    let returnValue: R | undefined;
+    if (lastCancel) lastCancel();
+    const ret = cancellable(...args);
+    if (ret instanceof Array) {
+      [lastCancel, returnValue] = ret;
+    } else {
+      lastCancel = ret;
+    }
+
+    return returnValue;
+  };
+}
+
 /**** FUNCTIONS ****/
 const showInput = (value: string) => {
   alert(value);
@@ -23,6 +45,8 @@ const showInputCancellable: CancellableFn<[string]> = (value: string) => {
   };
 };
 
+const showInputWrapped = wrapCancellable(showInputCancellable);
+
 /**** COMPONENT ****/
 export default function App() {
   const [cancelLastShow, setCancelLastShow] = useState<CancelFn>();
@@ -34,6 +58,10 @@ export default function App() {
     if (cancelLastShow) cancelLastShow();
     const cancelOperation = showInputCancellable(value);
     setCancelLastShow(() => cancelOperation);
+  };
+  
+  const handleChangeWrapped = (value: string) => {
+    showInputWrapped(value);
   };
 
   return (
@@ -50,6 +78,13 @@ export default function App() {
         id="asyncChanges"
         type="text"
         onChange={(event) => handleChangeCancellable(event.target.value)}
+      />
+      <br />
+      <label htmlFor="asyncChangesWrapped">Wrapped</label>
+      <input
+        id="asyncChangesWrapped"
+        type="text"
+        onChange={(event) => handleChangeWrapped(event.target.value)}
       />
     </>
   );
