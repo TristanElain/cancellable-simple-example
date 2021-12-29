@@ -35,12 +35,10 @@ const showInput = (value: string) => {
 };
 
 const showInputCancellable: CancellableFn<[string]> = (value: string) => {
-  console.log("cancellable called", value);
   const timeout = setTimeout(() => {
     alert(`cancellable: ${value}`);
   }, 500);
   return () => {
-    console.log("cancellable cancelled", value);
     clearTimeout(timeout);
   };
 };
